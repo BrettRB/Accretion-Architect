@@ -107,7 +107,8 @@ Examples:
 5. Add or update tests (Unreal Automation tests for core gameplay logic).
 6. Build and test locally.
 7. Review `git status` and `git diff`.
-8. Summarize changes and verification.
+8. Commit the changes locally (see the Git section).
+9. Summarize changes and verification.
 
 ## Requirements and Scope
 - Treat documented requirements as authoritative.
@@ -209,5 +210,15 @@ transcript of hidden reasoning, tool internals, or every token produced.
 - Inspect `git status` and `git diff` before finishing.
 - Confirm `.ai-log/` does not appear in `git status`.
 - Do not modify unrelated files.
-- Do not create or amend commits unless explicitly instructed.
-- Do not push to any remote unless explicitly instructed.
+- At the end of every task that changes tracked files, stage all files
+  changed for that task and create a new local commit so the user can push it.
+  - Only commit after the build and tests pass, or after clearly reporting
+    any build/test step that could not be run.
+  - Use a short summary line followed by a body describing what changed
+    and how it was verified.
+  - Never stage `.ai-log/`, generated folders, or files listed in `.gitignore`.
+  - Do not stage unrelated files. If the working tree contains changes the
+    agent did not make, leave them out and mention them to the user.
+  - Create a new commit each time; do not amend existing commits unless
+    explicitly instructed.
+- Do not push to any remote unless explicitly instructed. The user pushes.

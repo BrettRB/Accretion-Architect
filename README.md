@@ -52,7 +52,7 @@ Built in **Unreal Engine 5** for **Windows** and **macOS**.
    ```
    git clone <repository-url>
    ```
-3. Open `AccretionArchitect.uproject` in Unreal Engine 5. If prompted to
+3. Open `Accretion_Architect.uproject` in Unreal Engine 5. If prompted to
    rebuild modules, choose **Yes**.
 4. To edit C++, right-click the `.uproject` file and choose
    **Generate Visual Studio project files** (Windows) or
@@ -64,8 +64,8 @@ If the Unreal project has not been created yet:
 
 1. In Unreal, choose **Games > Blank**.
 2. Set the project type to **C++**, target platform to **Desktop**, quality
-   preset to **Maximum**, Starter Content **off**, and raytracing **off**.
-3. Name the project `AccretionArchitect` and create it inside this
+   preset to **Maximum**, Starter Content **off**, and raytracing **on**.
+3. Name the project `Accretion_Architect` and create it inside this
    repository folder so the `.uproject` sits next to this README.
 
 ## Testing
@@ -74,13 +74,18 @@ Core gameplay logic is tested with Unreal Automation tests, run locally:
 
 - In the editor: **Tools > Session Frontend > Automation**, then run tests
   under `AccretionArchitect`.
+- From the command line (Windows, adjust the engine path as needed):
+  ```
+  "C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" Accretion_ArchitectEditor Win64 Development -Project="%CD%\Accretion_Architect.uproject" -WaitMutex
+  "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "%CD%\Accretion_Architect.uproject" -ExecCmds="Automation RunTests AccretionArchitect;Quit" -unattended -nullrhi -nosplash
+  ```
 
 All builds and tests run locally. This project does not use hosted CI/CD.
 
 ## Repository Layout
 
 ```
-AccretionArchitect/
+Accretion_Architect/
 ├── Config/          Project settings
 ├── Content/         Unreal assets (Git LFS)
 ├── Source/          C++ gameplay code

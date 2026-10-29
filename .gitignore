@@ -29,6 +29,7 @@ Archive/
 .vscode/
 .idea/
 *.sln
+*.slnx
 *.suo
 *.sdf
 *.opensdf

@@ -47,6 +47,17 @@ while managing accretion disk pressure. Runs end on disk blowout or starvation.
 - **Ergosphere:** Spinning matter feeds 2x but heats 3x.
 - **Magnetic jets:** Vent pressure by firing jets that destroy nearby objects.
 
+### Controls
+- Keyboard and mouse only for now; controller support may come later.
+- Movement is camera-relative and the movement plane follows the camera:
+  W/S move along where the camera looks (including up/down pitch), A/D strafe
+  along the camera's right axis, Space/Left Ctrl move along the camera's up axis.
+- The black hole accelerates and drifts to a stop rather than halting instantly.
+- Players can customize controls in a Controls menu (Tab): rebind every
+  movement key (keyboard keys or mouse buttons), adjust mouse sensitivity,
+  invert mouse Y, and reset to defaults. Preferences save locally.
+- Tab (open/close menu) and Esc (cancel a rebind) are reserved.
+
 ### Meta-Progression
 - Currency earned at run end.
 - Unlocks starting black hole types (e.g., fast-spinning Kerr, charged).
@@ -55,7 +66,7 @@ while managing accretion disk pressure. Runs end on disk blowout or starvation.
 - Exact pressure and decay formulas.
 - Gravity nudge limits (charges vs. cooldown).
 - Run length target.
-- Camera controls on mouse/keyboard vs. controller.
+- Additional flight/control schemes beyond camera-relative movement.
 
 ## First Prototype Milestone (gray-box)
 - Black hole pawn with basic 3D movement and camera.
