@@ -56,6 +56,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Camera", meta = (ClampMin = "0"))
 	float BaseCameraDistance = 600.f;
 
+	/** Movement at the starting size; multiplied by the gravity component's size scale as the black hole grows. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Movement", meta = (ClampMin = "0"))
+	float BaseMaxSpeed = 3000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Movement", meta = (ClampMin = "0"))
+	float BaseAcceleration = 3000.f;
+
+	/** Low deceleration so the black hole drifts to a stop instead of halting instantly. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Movement", meta = (ClampMin = "0"))
+	float BaseDeceleration = 600.f;
+
+	/** How quickly the victory camera pulls back (1/s). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Camera", meta = (ClampMin = "0"))
+	float VictoryCameraPullSpeed = 0.6f;
+
+	/** Pulls the camera back to TargetCameraDistance to show the galaxy now orbiting the black hole. */
+	UFUNCTION(BlueprintCallable, Category = "Accretion|Camera")
+	void PlayVictoryCamera(float TargetCameraDistance);
+
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> Root;
@@ -89,6 +110,8 @@ protected:
 
 private:
 	bool bFrozen = false;
+	bool bPlayingVictoryCamera = false;
+	float VictoryCameraDistance = 0.f;
 
 	UFUNCTION()
 	void HandleMatterConsumed(float MatterMass, float RadialFraction);

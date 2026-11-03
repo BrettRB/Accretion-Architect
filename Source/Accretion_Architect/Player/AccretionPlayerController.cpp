@@ -3,7 +3,12 @@
 #include "Player/AccretionPlayerController.h"
 #include "Input/AccretionControlsSubsystem.h"
 #include "Player/AccretionBlackHolePawn.h"
+#include "Components/AccretionGravityComponent.h"
+#include "Components/AccretionMassComponent.h"
+#include "Universe/CelestialBody.h"
+#include "EngineUtils.h"
 #include "UI/AccretionControlsMenuWidget.h"
+#include "UI/AccretionVictoryWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/LocalPlayer.h"
@@ -106,8 +111,77 @@ bool AAccretionPlayerController::IsControlsMenuOpen() const
 	return ControlsMenu && ControlsMenu->IsInViewport();
 }
 
+void AAccretionPlayerController::AccretionAddMass(float Amount)
+{
+#if !UE_BUILD_SHIPPING
+	if (const APawn* ControlledPawn = GetPawn())
+	{
+		if (UAccretionMassComponent* Mass = ControlledPawn->FindComponentByClass<UAccretionMassComponent>())
+		{
+			Mass->AddMass(Amount);
+		}
+	}
+#endif
+}
+
+void AAccretionPlayerController::AccretionGoTo(const FString& BodyName)
+{
+#if !UE_BUILD_SHIPPING
+	APawn* ControlledPawn = GetPawn();
+	const UAccretionGravityComponent* Gravity = ControlledPawn ? ControlledPawn->FindComponentByClass<UAccretionGravityComponent>() : nullptr;
+	if (!Gravity)
+	{
+		return;
+	}
+	for (TActorIterator<ACelestialBody> It(GetWorld()); It; ++It)
+	{
+		if (It->GetBodyName().Contains(BodyName))
+		{
+			// Inside the pull radius (so it starts interacting at once), on the side facing the player.
+			const FVector Away = (ControlledPawn->GetActorLocation() - It->GetActorLocation()).GetSafeNormal();
+			ControlledPawn->SetActorLocation(It->GetActorLocation() + Away * (It->GetRadius() + Gravity->GetPullRadius() * 0.7f));
+			SetControlRotation((-Away).Rotation());
+			return;
+		}
+	}
+#endif
+}
+
+void AAccretionPlayerController::ShowVictoryScreen(const FAccretionRunSummary& Summary)
+{
+	if (IsControlsMenuOpen())
+	{
+		CloseControlsMenu();
+	}
+
+	if (!VictoryScreen)
+	{
+		VictoryScreen = CreateWidget<UAccretionVictoryWidget>(this, UAccretionVictoryWidget::StaticClass());
+	}
+	if (!VictoryScreen)
+	{
+		return;
+	}
+	VictoryScreen->SetSummary(Summary);
+	if (!VictoryScreen->IsInViewport())
+	{
+		VictoryScreen->AddToViewport(200);
+	}
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(VictoryScreen->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	SetShowMouseCursor(true);
+	FlushPressedKeys();
+}
+
 void AAccretionPlayerController::ToggleControlsMenu()
 {
+	if (VictoryScreen && VictoryScreen->IsInViewport())
+	{
+		return;
+	}
 	if (IsControlsMenuOpen())
 	{
 		CloseControlsMenu();

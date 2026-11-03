@@ -1,7 +1,9 @@
 # Accretion Architect
 
-A 3D space roguelike where you are a growing black hole. Travel through solar
-systems, consume matter to gain mass, and keep your accretion disk stable.
+A 3D space roguelike where you are a growing black hole. Start in the Proxima
+Centauri system, consume matter, moons, planets, and eventually stars, and
+travel through a generated universe of star systems. Become a supermassive
+black hole like Sagittarius A\*, with a whole galaxy orbiting you, to win.
 Feed too fast and the disk overheats into a blowout. Feed too slowly and you
 starve. Either way, the run ends and you start again.
 
@@ -14,6 +16,9 @@ Built in **Unreal Engine 5** for **Windows** and **macOS**.
 - **Disk pressure:** Rises as you feed. Smooth orbital feeding is safe;
   head-on impacts spike pressure. Max it out and your run ends.
 - **Starvation:** Mass slowly decays. Fall too low and you evaporate.
+- **Eat the universe:** Once you outweigh a moon, planet, or star you can
+  tidally shred it; at 10x its mass you swallow it whole.
+- **Victory:** Reach supermassive mass and a galaxy forms around you.
 - **Boost:** Spend mass for a burst of speed (Space) to reach distant matter.
 - **Gravity nudges:** Place temporary gravity wells to steer matter into
   safe spiral orbits.
@@ -24,7 +29,10 @@ Built in **Unreal Engine 5** for **Windows** and **macOS**.
 - Runs move through zones: asteroid belt, nebula, binary star system, and
   galactic core.
 - Choose one of three random **mutations** between waves to build synergies.
-- Earn currency when a run ends to unlock new starting black hole types.
+- Earn currency when a run ends to unlock new starting black hole types,
+  chosen from the main menu.
+- Each run's universe is generated from a random seed, following realistic
+  rules for star systems.
 
 ## Tech
 

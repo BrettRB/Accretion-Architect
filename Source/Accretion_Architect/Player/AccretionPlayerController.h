@@ -7,6 +7,8 @@
 #include "AccretionPlayerController.generated.h"
 
 class UAccretionControlsMenuWidget;
+class UAccretionVictoryWidget;
+struct FAccretionRunSummary;
 class UAccretionControlsSubsystem;
 struct FInputActionValue;
 
@@ -29,6 +31,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Accretion|Controls")
 	bool IsControlsMenuOpen() const;
 
+	/** Shows the victory screen (mouse cursor, UI input); the controls menu is unavailable afterwards. */
+	void ShowVictoryScreen(const FAccretionRunSummary& Summary);
+
+	/** Development console command (not in Shipping builds): adds mass to the black hole. */
+	UFUNCTION(Exec)
+	void AccretionAddMass(float Amount);
+
+	/** Development console command (not in Shipping builds): moves next to the loaded body whose name contains BodyName. */
+	UFUNCTION(Exec)
+	void AccretionGoTo(const FString& BodyName);
+
 	/** Base look speed (degrees per mouse unit) before the player's sensitivity multiplier. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Controls", meta = (ClampMin = "0"))
 	float BaseLookRate = 1.f;
@@ -46,4 +59,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAccretionControlsMenuWidget> ControlsMenu;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAccretionVictoryWidget> VictoryScreen;
 };

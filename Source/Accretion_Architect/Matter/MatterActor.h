@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "MatterActor.generated.h"
 
+class UMaterialInterface;
 class UStaticMeshComponent;
 
 /**
@@ -32,6 +33,9 @@ public:
 	void AddAcceleration(const FVector& Acceleration) { PendingAcceleration += Acceleration; }
 
 	void SetVelocity(const FVector& NewVelocity) { Velocity = NewVelocity; }
+
+	/** Overrides the mesh material (e.g. fragments torn from a star glow like the star). Null keeps the default. */
+	void SetSurfaceMaterial(UMaterialInterface* Material);
 
 	/** Removes the matter from play. */
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Matter")

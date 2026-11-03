@@ -30,10 +30,13 @@ void UDiskPressureComponent::AddPressure(float Amount)
 	}
 }
 
-float UDiskPressureComponent::AddFeedPressure(float MatterMass, float RadialFraction)
+float UDiskPressureComponent::AddFeedPressure(float MatterMass, float RadialFraction, float BlackHoleMass)
 {
+	const double SizeDivisor = BlackHoleMass > 0.f
+		? FMath::Max(FAccretionMath::ComputeMassScale(BlackHoleMass, PressureReferenceMass, PressureMassExponent), UE_SMALL_NUMBER)
+		: 1.0;
 	const float Amount = static_cast<float>(FAccretionMath::ComputeFeedPressure(
-		MatterMass, PressurePerMass, SmoothFeedMultiplier, HeadOnFeedMultiplier, RadialFraction));
+		MatterMass, PressurePerMass, SmoothFeedMultiplier, HeadOnFeedMultiplier, RadialFraction) / SizeDivisor);
 	AddPressure(Amount);
 	return Amount;
 }

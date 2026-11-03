@@ -58,9 +58,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Mass", meta = (ClampMin = "0"))
 	float StartingMass = 100.f;
 
-	/** Fraction of current mass lost per second. Larger black holes lose more in absolute terms. */
+	/** Fraction of mass lost per second at DecayReferenceMass. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Mass", meta = (ClampMin = "0"))
 	float DecayRatePerSecond = 0.01f;
+
+	/** Mass at which decay is exactly DecayRatePerSecond of mass (the starting black hole). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Mass", meta = (ClampMin = "1"))
+	float DecayReferenceMass = 100.f;
+
+	/**
+	 * How decay grows with mass: loss per second = rate * reference * (mass / reference) ^ exponent.
+	 * Below 1, bigger black holes lose more in absolute terms but a smaller share of their mass.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Mass", meta = (ClampMin = "0", ClampMax = "1"))
+	float DecayMassExponent = 0.7f;
 
 	/** Falling below this mass ends the run. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Mass", meta = (ClampMin = "0"))

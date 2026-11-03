@@ -29,10 +29,11 @@ public:
 
 	/**
 	 * Adds pressure for consuming MatterMass. RadialFraction is 0 for a smooth spiral and 1 for a head-on impact.
-	 * Returns the pressure that was added.
+	 * BlackHoleMass > 0 makes the pressure relative to the black hole's size (see PressureMassExponent);
+	 * 0 applies the unscaled formula. Returns the pressure that was added.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Pressure")
-	float AddFeedPressure(float MatterMass, float RadialFraction);
+	float AddFeedPressure(float MatterMass, float RadialFraction, float BlackHoleMass = 0.f);
 
 	/** Vents pressure for DeltaTime. Called from TickComponent. */
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Pressure")
@@ -74,6 +75,18 @@ public:
 	/** Multiplier for matter that falls straight in. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Pressure", meta = (ClampMin = "0"))
 	float HeadOnFeedMultiplier = 3.f;
+
+	/** Black hole mass at which feed pressure is unscaled (the starting black hole). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Pressure", meta = (ClampMin = "1"))
+	float PressureReferenceMass = 100.f;
+
+	/**
+	 * Feed pressure is divided by (black hole mass / reference) ^ exponent. At 1, like the Eddington
+	 * limit, what matters is the meal's size relative to the black hole: a planet strains a big black
+	 * hole about as much as a rock strains a small one.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Pressure", meta = (ClampMin = "0", ClampMax = "2"))
+	float PressureMassExponent = 1.f;
 
 private:
 	void SetPressure(float NewPressure);

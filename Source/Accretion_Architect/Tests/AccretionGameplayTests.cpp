@@ -8,6 +8,8 @@
 #include "Components/DiskPressureComponent.h"
 #include "Core/AccretionMath.h"
 #include "Input/AccretionKeyBindings.h"
+#include "Universe/CelestialTypes.h"
+#include "Universe/StarSystemGenerator.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -262,6 +264,7 @@ bool FAccretionBoostTest::RunTest(const FString& Parameters)
 	UFloatingPawnMovement* Movement = NewObject<UFloatingPawnMovement>();
 	UAccretionBoostComponent* Boost = NewObject<UAccretionBoostComponent>();
 	Boost->MassCost = 10.f;
+	Boost->MassCostFraction = 0.f;
 	Boost->BoostSpeed = 3000.f;
 	Boost->Cooldown = 2.f;
 
@@ -285,6 +288,206 @@ bool FAccretionBoostTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Cannot afford a boost that would starve"), Boost->CanAfford(Mass));
 	TestFalse(TEXT("Boost refused when it would drop mass below the threshold"), Boost->TryBoostUsing(Mass, Movement, FVector(1, 0, 0)));
 	TestEqual(TEXT("Refused boost keeps mass"), Mass->GetMass(), 25.f, 1e-3f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionBoostScalingTest, "AccretionArchitect.Boost.ScalesWithSize", AccretionTests::Flags)
+bool FAccretionBoostScalingTest::RunTest(const FString& Parameters)
+{
+	UAccretionMassComponent* Mass = NewObject<UAccretionMassComponent>();
+	Mass->StartingMass = 10000.f;
+	Mass->StarvationThreshold = 20.f;
+	Mass->ResetMass();
+
+	UFloatingPawnMovement* Movement = NewObject<UFloatingPawnMovement>();
+	UAccretionBoostComponent* Boost = NewObject<UAccretionBoostComponent>();
+	Boost->MassCost = 0.f;
+	Boost->MassCostFraction = 0.05f;
+	Boost->BoostSpeed = 1000.f;
+
+	TestEqual(TEXT("Default cost is 5 at the starting mass of 100"), NewObject<UAccretionBoostComponent>()->GetMassCost(100.f), 5.f, 1e-3f);
+	TestTrue(TEXT("Boost succeeds"), Boost->TryBoostUsing(Mass, Movement, FVector(1, 0, 0), 4.f));
+	TestEqual(TEXT("Cost is a share of current mass"), Mass->GetMass(), 9500.f, 1e-2f);
+	TestTrue(TEXT("Speed is multiplied by the size scale"), Movement->Velocity.Equals(FVector(4000, 0, 0), 1e-3));
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Scaling with size
+// ---------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionSizeScalingTest, "AccretionArchitect.Scaling.DecayAndPressure", AccretionTests::Flags)
+bool FAccretionSizeScalingTest::RunTest(const FString& Parameters)
+{
+	// Decay: unchanged at the reference mass, a smaller share of mass when bigger.
+	TestEqual(TEXT("Decay at the reference mass is rate * mass"), FAccretionMath::ComputeDecayPerSecond(100.0, 0.01, 100.0, 0.7), 1.0, 1e-6);
+	const double BigDecay = FAccretionMath::ComputeDecayPerSecond(1000000.0, 0.01, 100.0, 0.7);
+	TestTrue(TEXT("Big black holes lose more mass in absolute terms"), BigDecay > 1.0);
+	TestTrue(TEXT("...but a smaller share of their mass"), BigDecay / 1000000.0 < 0.01);
+
+	UAccretionMassComponent* Mass = NewObject<UAccretionMassComponent>();
+	Mass->StartingMass = 10000.f;
+	Mass->StarvationThreshold = 20.f;
+	Mass->ResetMass();
+	Mass->UpdateMass(1.f);
+	TestTrue(TEXT("Component decays less than 1% per second at 100x the reference mass"), Mass->GetMass() > 9900.f);
+
+	// Pressure: relative to the black hole's size (Eddington-like).
+	UDiskPressureComponent* Pressure = NewObject<UDiskPressureComponent>();
+	const float AtStart = Pressure->AddFeedPressure(3.f, 0.f, 100.f);
+	Pressure->ResetPressure();
+	const float WhenBig = Pressure->AddFeedPressure(30.f, 0.f, 1000.f);
+	TestEqual(TEXT("10x the meal at 10x the size adds the same pressure"), WhenBig, AtStart, 1e-3f);
+	Pressure->ResetPressure();
+	TestEqual(TEXT("No black hole mass means unscaled pressure"), Pressure->AddFeedPressure(3.f, 0.f), AtStart, 1e-3f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionProgressTest, "AccretionArchitect.Scaling.SupermassiveProgress", AccretionTests::Flags)
+bool FAccretionProgressTest::RunTest(const FString& Parameters)
+{
+	TestEqual(TEXT("No progress at the starting mass"), FAccretionMath::ComputeLogProgress(100.0, 100.0, 1000000.0), 0.0, 1e-6);
+	TestEqual(TEXT("Halfway on a log scale is the geometric mean"), FAccretionMath::ComputeLogProgress(10000.0, 100.0, 1000000.0), 0.5, 1e-6);
+	TestEqual(TEXT("Complete at the target"), FAccretionMath::ComputeLogProgress(1000000.0, 100.0, 1000000.0), 1.0, 1e-6);
+	TestEqual(TEXT("Clamped below the start"), FAccretionMath::ComputeLogProgress(50.0, 100.0, 1000000.0), 0.0, 1e-6);
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Eating planets and stars
+// ---------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionConsumeModeTest, "AccretionArchitect.Celestial.ConsumeModes", AccretionTests::Flags)
+bool FAccretionConsumeModeTest::RunTest(const FString& Parameters)
+{
+	using M = ECelestialConsumeMode;
+	const double Shred = 1.0, Swallow = 10.0;
+
+	TestTrue(TEXT("A body heavier than the black hole cannot be eaten"), FAccretionMath::GetConsumeMode(100.0, 250.0, Shred, Swallow) == M::TooMassive);
+	TestTrue(TEXT("Once as heavy as the body, it can be shredded"), FAccretionMath::GetConsumeMode(250.0, 250.0, Shred, Swallow) == M::Shred);
+	TestTrue(TEXT("Still shredding below 10x"), FAccretionMath::GetConsumeMode(2000.0, 250.0, Shred, Swallow) == M::Shred);
+	TestTrue(TEXT("At 10x the body's mass it is swallowed whole"), FAccretionMath::GetConsumeMode(2500.0, 250.0, Shred, Swallow) == M::SwallowWhole);
+
+	TestEqual(TEXT("Mass needed to shred"), FAccretionMath::GetMassRequiredFor(M::Shred, 900.0, Shred, Swallow), 900.0, 1e-6);
+	TestEqual(TEXT("Mass needed to swallow"), FAccretionMath::GetMassRequiredFor(M::SwallowWhole, 900.0, Shred, Swallow), 9000.0, 1e-6);
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Star system generation
+// ---------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionSystemGenerationTest, "AccretionArchitect.Universe.GenerationRules", AccretionTests::Flags)
+bool FAccretionSystemGenerationTest::RunTest(const FString& Parameters)
+{
+	using T = ECelestialBodyType;
+	const UCelestialCatalog& Catalog = *GetDefault<UCelestialCatalog>();
+	const FStarSystemGenerationSettings Settings;
+
+	auto IsGiant = [](T Type) { return Type == T::GasGiant || Type == T::IceGiant; };
+	int32 Singles = 0, Multiples = 0, Planets = 0, Moons = 0, Belts = 0;
+	bool bAllValid = true;
+	auto Check = [&](bool bCondition, const FString& What, int32 Seed)
+	{
+		if (!bCondition && bAllValid)
+		{
+			AddError(FString::Printf(TEXT("Seed %d: %s"), Seed, *What));
+			bAllValid = false;
+		}
+	};
+
+	for (int32 Seed = 1; Seed <= 400; ++Seed)
+	{
+		const FStarSystemDesc System = FStarSystemGenerator::Generate(Seed, Catalog, Settings);
+		const int32 StarCount = System.NumStars();
+		Check(StarCount >= 1 && StarCount <= 3, TEXT("1 to 3 stars"), Seed);
+		(StarCount == 1 ? Singles : Multiples)++;
+		Belts += System.BeltOuterRadius > 0.f ? 1 : 0;
+		Check(System.Radius <= Settings.MaxSystemRadius, FString::Printf(TEXT("fits its radius (%.0f)"), System.Radius), Seed);
+
+		const float PrimaryMass = System.Bodies.Num() > 0 ? System.Bodies[0].Mass : 0.f;
+		float LightestStar = TNumericLimits<float>::Max();
+		for (const FCelestialBodyDesc& Body : System.Bodies)
+		{
+			if (Body.bIsStar)
+			{
+				LightestStar = FMath::Min(LightestStar, Body.Mass);
+			}
+		}
+		const FCelestialClassDefinition* PrimaryClass = Catalog.Find(System.Bodies[0].Type);
+		const float FrostLine = PrimaryClass ? PrimaryClass->FrostLineDistance : 0.f;
+
+		TMap<int32, float> LastOrbitByParent;
+		for (int32 Index = 0; Index < System.Bodies.Num(); ++Index)
+		{
+			const FCelestialBodyDesc& Body = System.Bodies[Index];
+			if (Body.bIsStar)
+			{
+				Check(Body.ParentIndex == INDEX_NONE, TEXT("stars never orbit other bodies"), Seed);
+				Check(Body.Mass <= PrimaryMass, TEXT("companions are no heavier than the primary"), Seed);
+				continue;
+			}
+
+			const bool bMoon = Body.Type == T::Moon;
+			if (bMoon)
+			{
+				++Moons;
+				const FCelestialBodyDesc& Planet = System.Bodies[Body.ParentIndex];
+				Check(!Planet.bIsStar && Planet.Type != T::Moon, TEXT("moons orbit planets"), Seed);
+				Check(Body.Mass <= Planet.Mass * Settings.MaxMoonToPlanetMass + 1.f, TEXT("moons are much lighter than their planet"), Seed);
+				Check(Body.OrbitRadius > Planet.Radius, TEXT("moons orbit outside their planet"), Seed);
+			}
+			else
+			{
+				++Planets;
+				Check(Body.ParentIndex == INDEX_NONE || System.Bodies[Body.ParentIndex].bIsStar, TEXT("planets orbit a star or the binary's center"), Seed);
+				Check(Body.Mass <= LightestStar * Settings.MaxPlanetToStarMass + 1.f, TEXT("planets are much lighter than their stars"), Seed);
+				if (IsGiant(Body.Type))
+				{
+					Check(Body.OrbitRadius >= FrostLine, TEXT("giants form beyond the frost line"), Seed);
+				}
+			}
+
+			// Orbits around the same parent are spaced outward.
+			if (const float* Previous = LastOrbitByParent.Find(Body.ParentIndex))
+			{
+				Check(Body.OrbitRadius >= *Previous * 1.3f, TEXT("orbits are spaced outward"), Seed);
+			}
+			LastOrbitByParent.Add(Body.ParentIndex, Body.OrbitRadius);
+		}
+	}
+
+	TestTrue(TEXT("Every generated system follows the rules"), bAllValid);
+	TestTrue(TEXT("Most systems have a single star"), Singles > Multiples);
+	TestTrue(TEXT("Some systems have multiple stars"), Multiples > 0);
+	TestTrue(TEXT("Planets are generated"), Planets > 400);
+	TestTrue(TEXT("Moons are generated"), Moons > 0);
+	TestTrue(TEXT("Some systems have asteroid belts"), Belts > 0);
+
+	const FStarSystemDesc A = FStarSystemGenerator::Generate(77, Catalog, Settings);
+	const FStarSystemDesc B = FStarSystemGenerator::Generate(77, Catalog, Settings);
+	TestTrue(TEXT("Generation is deterministic"), A.Name == B.Name && A.Bodies.Num() == B.Bodies.Num()
+		&& (A.Bodies.Num() == 0 || FMath::IsNearlyEqual(A.Bodies.Last().Mass, B.Bodies.Last().Mass)));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionStartingSystemsTest, "AccretionArchitect.Universe.StartingSystems", AccretionTests::Flags)
+bool FAccretionStartingSystemsTest::RunTest(const FString& Parameters)
+{
+	const UCelestialCatalog& Catalog = *GetDefault<UCelestialCatalog>();
+	const FStarSystemGenerationSettings Settings;
+
+	const FStarSystemDesc Proxima = FStarSystemGenerator::MakeProximaCentauri(Catalog, Settings);
+	TestEqual(TEXT("Proxima is a single star"), Proxima.NumStars(), 1);
+	TestTrue(TEXT("Proxima has d and b"), Proxima.Bodies.ContainsByPredicate([](const FCelestialBodyDesc& Body) { return Body.Name == TEXT("Proxima b"); })
+		&& Proxima.Bodies.ContainsByPredicate([](const FCelestialBodyDesc& Body) { return Body.Name == TEXT("Proxima d"); }));
+	TestTrue(TEXT("Proxima has a debris belt to feed on early"), Proxima.BeltOuterRadius > Proxima.BeltInnerRadius);
+	TestTrue(TEXT("Proxima d is the first planet the starting black hole can grow into"),
+		Proxima.Bodies[1].Mass > 100.f && Proxima.Bodies[1].Mass < Proxima.Bodies[2].Mass);
+
+	const FStarSystemDesc Alpha = FStarSystemGenerator::MakeAlphaCentauri(Catalog, Settings);
+	TestEqual(TEXT("Alpha Centauri is a binary"), Alpha.NumStars(), 2);
+	TestTrue(TEXT("Alpha Centauri fits in its sector"), Alpha.Radius <= Settings.MaxSystemRadius);
 	return true;
 }
 

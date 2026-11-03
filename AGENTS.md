@@ -9,7 +9,9 @@ Read the README and relevant documentation in `docs/` before substantial changes
 The player controls a growing black hole that travels through solar systems,
 consuming matter to gain mass. Feeding raises accretion disk pressure. If the
 disk overheats into a runaway blowout, or the black hole starves and
-evaporates, the run ends and the player starts over.
+evaporates, the run ends and the player starts over. The run is won by
+becoming a supermassive black hole (Sagittarius A*-class) with a galaxy
+orbiting it.
 
 Primary project goals include:
 
@@ -22,6 +24,12 @@ Primary project goals include:
   is safer than head-on impacts, and pressure slowly vents over time.
 - Fail states: disk blowout (pressure maxes out) and starvation (mass decays
   below a threshold).
+- Win condition: reaching supermassive mass, followed by a victory screen
+  that returns to the main menu (where starting options are chosen).
+- Consumable moons, planets, and stars: shredded once the black hole
+  outweighs them, swallowed whole once much heavier.
+- A procedurally generated universe of star systems that follows realistic
+  rules (see `docs/game-design.md`), starting at Proxima Centauri.
 - Gravity nudges/wells the player places to steer incoming matter.
 - Hazards that can end a run, such as stellar flares, neutron star beams,
   and rival black holes.

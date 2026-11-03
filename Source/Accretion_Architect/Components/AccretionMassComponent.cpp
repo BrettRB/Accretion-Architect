@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Components/AccretionMassComponent.h"
+#include "Core/AccretionMath.h"
 
 UAccretionMassComponent::UAccretionMassComponent()
 {
@@ -46,7 +47,8 @@ void UAccretionMassComponent::UpdateMass(float DeltaTime)
 		return;
 	}
 
-	SetMass(Mass * FMath::Max(1.f - DecayRatePerSecond * DeltaTime, 0.f));
+	const float Decay = static_cast<float>(FAccretionMath::ComputeDecayPerSecond(Mass, DecayRatePerSecond, DecayReferenceMass, DecayMassExponent));
+	SetMass(Mass - FMath::Min(Decay * DeltaTime, Mass));
 
 	if (Mass < StarvationThreshold)
 	{

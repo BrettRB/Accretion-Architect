@@ -2,6 +2,11 @@
 
 #include "UI/AccretionHUD.h"
 #include "Components/AccretionBoostComponent.h"
+#include "Components/AccretionGravityComponent.h"
+#include "Core/AccretionMath.h"
+#include "Universe/AccretionUniverse.h"
+#include "Universe/CelestialBody.h"
+#include "EngineUtils.h"
 #include "Components/AccretionMassComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "Input/AccretionControlsSubsystem.h"
@@ -33,6 +38,60 @@ void AAccretionHUD::DrawMeter(float X, float Y, float Fill, const FLinearColor& 
 	DrawText(Label, FLinearColor::White, X, Y - 20.f, GEngine->GetSmallFont());
 }
 
+void AAccretionHUD::DrawNearestBody(const APawn* Pawn, float X, float Y)
+{
+	const UAccretionGravityComponent* Gravity = Pawn->FindComponentByClass<UAccretionGravityComponent>();
+	if (!Gravity)
+	{
+		return;
+	}
+	if (!Universe.IsValid())
+	{
+		TActorIterator<AAccretionUniverse> It(GetWorld());
+		Universe = It ? *It : nullptr;
+	}
+	if (!Universe.IsValid())
+	{
+		return;
+	}
+
+	const float PullRadius = Gravity->GetPullRadius();
+	const ACelestialBody* Body = Universe->FindNearestBody(Pawn->GetActorLocation(), PullRadius * NearestBodyRangeInPullRadii);
+	if (!Body)
+	{
+		return;
+	}
+
+	const FCelestialClassDefinition* Definition = Universe->GetCatalog().Find(Body->GetBodyType());
+	const FString TypeName = Definition ? Definition->DisplayName.ToString() : FString();
+	auto Number = [](float Value) { return FText::AsNumber(FMath::RoundToInt32(Value)).ToString(); };
+
+	DrawText(FString::Printf(TEXT("%s  -  %s  -  mass %s"), *Body->GetBodyName().ToUpper(), *TypeName, *Number(Body->GetMass())),
+		FLinearColor::White, X, Y, GEngine->GetSmallFont());
+
+	const bool bInRange = FVector::Dist(Pawn->GetActorLocation(), Body->GetActorLocation()) - Body->GetRadius() <= PullRadius;
+	FString Status;
+	FLinearColor Color;
+	switch (Gravity->GetConsumeModeFor(Body))
+	{
+	case ECelestialConsumeMode::SwallowWhole:
+		Status = bInRange ? TEXT("Swallowing whole") : TEXT("Can swallow whole - get closer");
+		Color = FLinearColor(0.4f, 1.f, 0.5f);
+		break;
+	case ECelestialConsumeMode::Shred:
+		Status = FString::Printf(TEXT("%s   (swallow whole at mass %s)"),
+			bInRange ? TEXT("Tidal shredding - watch disk pressure") : TEXT("Can shred - get closer"),
+			*Number(Gravity->GetMassRequiredFor(Body, ECelestialConsumeMode::SwallowWhole)));
+		Color = FLinearColor(1.f, 0.8f, 0.3f);
+		break;
+	default:
+		Status = FString::Printf(TEXT("Too massive - grow to %s to shred"), *Number(Gravity->GetMassRequiredFor(Body, ECelestialConsumeMode::Shred)));
+		Color = FLinearColor(1.f, 0.45f, 0.35f);
+		break;
+	}
+	DrawText(Status, Color, X, Y + 18.f, GEngine->GetSmallFont());
+}
+
 void AAccretionHUD::DrawHUD()
 {
 	Super::DrawHUD();
@@ -46,10 +105,20 @@ void AAccretionHUD::DrawHUD()
 
 	float Y = Margin + 20.f;
 
+	const AAccretionGameMode* GameMode = GetWorld()->GetAuthGameMode<AAccretionGameMode>();
+	if (GameMode && GameMode->GetRunEndReason() == EAccretionRunEndReason::Victory)
+	{
+		return; // the galaxy and victory screen take over
+	}
+
 	if (const UAccretionMassComponent* Mass = Pawn->FindComponentByClass<UAccretionMassComponent>())
 	{
-		const FString Label = FString::Printf(TEXT("MASS  %.1f   (starve below %.0f)"), Mass->GetMass(), Mass->StarvationThreshold);
-		DrawMeter(Margin, Y, Mass->GetMass() / MassMeterMax, FLinearColor(0.3f, 0.6f, 1.f), Label, Mass->StarvationThreshold / MassMeterMax);
+		// Log scale: every doubling of mass moves the bar the same amount, all the way to supermassive.
+		const float TargetMass = GameMode ? GameMode->SupermassiveMass : 1.f;
+		const float Progress = static_cast<float>(FAccretionMath::ComputeLogProgress(Mass->GetMass(), Mass->StartingMass, TargetMass));
+		const FString Label = FString::Printf(TEXT("MASS  %s   %.0f%% to supermassive   (starve below %.0f)"),
+			*FText::AsNumber(FMath::RoundToInt32(Mass->GetMass())).ToString(), Progress * 100.f, Mass->StarvationThreshold);
+		DrawMeter(Margin, Y, Progress, FLinearColor(0.3f, 0.6f, 1.f), Label);
 		Y += MeterHeight + 32.f;
 	}
 
@@ -86,14 +155,18 @@ void AAccretionHUD::DrawHUD()
 		{
 			Status = TEXT("ready");
 		}
-		DrawText(FString::Printf(TEXT("BOOST [%s]  %s   (costs %.0f mass)"), *KeyName, *Status, Boost->MassCost),
+		DrawText(FString::Printf(TEXT("BOOST [%s]  %s   (costs %s mass)"), *KeyName, *Status,
+			*FText::AsNumber(FMath::RoundToInt32(Boost->GetMassCost(BoostMass->GetMass()))).ToString()),
 			StatusColor, Margin, Y - 20.f, GEngine->GetSmallFont());
+		Y += 28.f;
 	}
+
+	DrawNearestBody(Pawn, Margin, Y);
 
 	DrawText(TEXT("Tab: Controls"), FLinearColor(1.f, 1.f, 1.f, 0.6f), Margin, Canvas->ClipY - Margin - 16.f, GEngine->GetSmallFont());
 
-	const AAccretionGameMode* GameMode = GetWorld()->GetAuthGameMode<AAccretionGameMode>();
-	if (GameMode && GameMode->HasRunEnded())
+	// Victory has its own screen; losses get a centered message.
+	if (GameMode && GameMode->HasRunEnded() && GameMode->GetRunEndReason() != EAccretionRunEndReason::Victory)
 	{
 		const bool bBlowout = GameMode->GetRunEndReason() == EAccretionRunEndReason::Blowout;
 		const FString Message = bBlowout ? TEXT("DISK BLOWOUT") : TEXT("STARVED - EVAPORATED");

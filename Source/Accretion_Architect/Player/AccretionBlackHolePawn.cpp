@@ -16,7 +16,9 @@
 
 AAccretionBlackHolePawn::AAccretionBlackHolePawn()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// Ticks only for the victory camera.
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	Root = CreateDefaultSubobject<USphereComponent>(TEXT("Root"));
 	Root->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -48,11 +50,11 @@ AAccretionBlackHolePawn::AAccretionBlackHolePawn()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
+	// Speeds are set from the Base* properties times the size scale in UpdateSizeFromMass.
 	Movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
-	Movement->MaxSpeed = 2000.f;
-	Movement->Acceleration = 2000.f;
-	// Low deceleration so the black hole drifts to a stop instead of halting instantly.
-	Movement->Deceleration = 500.f;
+	Movement->MaxSpeed = BaseMaxSpeed;
+	Movement->Acceleration = BaseAcceleration;
+	Movement->Deceleration = BaseDeceleration;
 
 	MassComponent = CreateDefaultSubobject<UAccretionMassComponent>(TEXT("Mass"));
 	DiskPressureComponent = CreateDefaultSubobject<UDiskPressureComponent>(TEXT("DiskPressure"));
@@ -80,8 +82,9 @@ void AAccretionBlackHolePawn::BeginPlay()
 
 void AAccretionBlackHolePawn::HandleMatterConsumed(float MatterMass, float RadialFraction)
 {
+	// Pressure is judged against the black hole's size before this meal.
+	DiskPressureComponent->AddFeedPressure(MatterMass, RadialFraction, MassComponent->GetMass());
 	MassComponent->AddMass(MatterMass * MassGainPerMatterMass);
-	DiskPressureComponent->AddFeedPressure(MatterMass, RadialFraction);
 	DiskComponent->NotifyMatterConsumed();
 }
 
@@ -101,9 +104,37 @@ void AAccretionBlackHolePawn::UpdateSizeFromMass()
 	Root->SetSphereRadius(EventHorizon);
 	// The engine sphere mesh is 100 cm across (50 cm radius).
 	BodyMesh->SetRelativeScale3D(FVector(EventHorizon / 50.f));
-	SpringArm->TargetArmLength = BaseCameraDistance + EventHorizon * CameraDistancePerEventHorizonRadius;
+	if (!bPlayingVictoryCamera)
+	{
+		SpringArm->TargetArmLength = BaseCameraDistance + EventHorizon * CameraDistancePerEventHorizonRadius;
+	}
 	// The disk mesh is built in units of the event horizon radius.
 	DiskComponent->SetRelativeScale3D(FVector(EventHorizon));
+
+	// A bigger black hole crosses bigger distances at a similar pace.
+	const float SizeScale = GravityComponent->GetSizeScale();
+	Movement->MaxSpeed = BaseMaxSpeed * SizeScale;
+	Movement->Acceleration = BaseAcceleration * SizeScale;
+	Movement->Deceleration = BaseDeceleration * SizeScale;
+}
+
+void AAccretionBlackHolePawn::PlayVictoryCamera(float TargetCameraDistance)
+{
+	bPlayingVictoryCamera = true;
+	VictoryCameraDistance = TargetCameraDistance;
+	SetActorTickEnabled(true);
+}
+
+void AAccretionBlackHolePawn::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bPlayingVictoryCamera)
+	{
+		// Ease out toward the galaxy-wide view (exponential approach, so it slows as it arrives).
+		const float Alpha = 1.f - FMath::Exp(-VictoryCameraPullSpeed * DeltaTime);
+		SpringArm->TargetArmLength = FMath::Lerp(SpringArm->TargetArmLength, VictoryCameraDistance, Alpha);
+	}
 }
 
 void AAccretionBlackHolePawn::FreezeForRunEnd()

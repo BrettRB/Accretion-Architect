@@ -54,14 +54,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Spawning", meta = (ClampMin = "0.05"))
 	float CheckInterval = 0.5f;
 
+	/**
+	 * Rock masses scale by (player mass / reference) ^ this, so ambient rocks stay worth eating as the black
+	 * hole grows (matching mass decay). Spawn and recycle distances scale with the black hole's size.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Spawning", meta = (ClampMin = "0", ClampMax = "1"))
+	float MatterMassExponent = 0.7f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Spawning", meta = (ClampMin = "1"))
+	float ReferenceMass = 100.f;
+
 private:
 	FVector GetFocusLocation() const;
+	void UpdateScales();
 	FVector RandomSpawnLocation(const FVector& Focus) const;
 	FVector RandomDriftVelocity() const;
+	float RandomMatterMass() const;
 	void SpawnMatter(const FVector& Focus);
 
 	UPROPERTY()
 	TArray<TObjectPtr<AMatterActor>> SpawnedMatter;
 
 	float TimeUntilCheck = 0.f;
+	float SizeScale = 1.f;
+	float MassScale = 1.f;
 };

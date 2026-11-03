@@ -30,8 +30,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Boost")
 	bool TryBoost(const FVector& Direction);
 
-	/** Boost logic with explicit dependencies (used by TryBoost and by tests). */
-	bool TryBoostUsing(UAccretionMassComponent* Mass, UMovementComponent* Movement, const FVector& Direction);
+	/**
+	 * Boost logic with explicit dependencies (used by TryBoost and by tests). SpeedScale multiplies
+	 * BoostSpeed (the owner passes its size scale so boosts grow with the black hole).
+	 */
+	bool TryBoostUsing(UAccretionMassComponent* Mass, UMovementComponent* Movement, const FVector& Direction, float SpeedScale = 1.f);
+
+	/** Mass a boost costs at the given current mass. */
+	UFUNCTION(BlueprintPure, Category = "Accretion|Boost")
+	float GetMassCost(float CurrentMass) const;
 
 	/** Counts down the cooldown. Called from TickComponent. */
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Boost")
@@ -50,11 +57,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Accretion|Boost")
 	FOnAccretionBoost OnBoost;
 
-	/** Mass spent per boost. */
+	/** Flat mass spent per boost. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Boost", meta = (ClampMin = "0"))
-	float MassCost = 5.f;
+	float MassCost = 0.f;
 
-	/** Speed (cm/s) added in the boost direction. */
+	/** Share of current mass spent per boost, so boosting costs the same at any size (5 at the starting 100). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Boost", meta = (ClampMin = "0", ClampMax = "1"))
+	float MassCostFraction = 0.05f;
+
+	/** Speed (cm/s) added in the boost direction, before the size scale. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Boost", meta = (ClampMin = "0"))
 	float BoostSpeed = 4000.f;
 

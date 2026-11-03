@@ -45,3 +45,11 @@ void AMatterActor::Consume()
 	bConsumed = true;
 	Destroy();
 }
+
+void AMatterActor::SetSurfaceMaterial(UMaterialInterface* Material)
+{
+	if (Material)
+	{
+		Mesh->SetMaterial(0, Material);
+	}
+}
