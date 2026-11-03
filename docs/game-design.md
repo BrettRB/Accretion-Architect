@@ -142,22 +142,22 @@ Rules scale with the black hole so the late game plays like the early game:
   way to see the black hole: it shows as a silhouette blocking them.
 - Exposure is fixed (no auto exposure) to keep space dark.
 
-### Gravity Nudges
+### Gravity Nudges (planned)
 - The player places temporary gravity wells to steer incoming matter.
 - Limited by cooldown or charges (to be decided).
 
-### Hazards
+### Hazards (planned)
 - Stellar flares
 - Neutron star beams
 - Rival black holes
 
-### Zones
+### Zones (planned)
 1. Asteroid belt
 2. Nebula
 3. Binary star system
 4. Galactic core
 
-### Mutations (examples)
+### Mutations (planned, examples)
 - **Ergosphere:** Spinning matter feeds 2x but heats 3x.
 - **Magnetic jets:** Vent pressure by firing jets that destroy nearby objects.
 
@@ -180,7 +180,7 @@ Rules scale with the black hole so the late game plays like the early game:
 - `AccretionGoTo <name>`: jump next to a loaded body whose name contains
   `<name>` (e.g. `AccretionGoTo Proxima b`).
 
-### Meta-Progression
+### Meta-Progression (planned)
 - Currency earned at run end.
 - Unlocks starting black hole types (e.g., fast-spinning Kerr, charged),
   chosen in the main menu.
@@ -193,8 +193,23 @@ Rules scale with the black hole so the late game plays like the early game:
 - What meta-currency a victory awards versus a loss.
 - Additional flight/control schemes beyond camera-relative movement.
 
-## First Prototype Milestone (gray-box)
+## Milestones
+
+### First Prototype Milestone (gray-box) - done
 - Black hole pawn with basic 3D movement and camera.
 - Matter actors pulled in by a gravity component.
 - Mass and disk pressure components with on-screen meters.
 - Blowout and starvation fail states that restart the run.
+- Customizable controls (Tab menu).
+
+### Second Milestone (gray-box) - done
+- Dark space backdrop with starfield; boost; accretion disk visual.
+- Consumable moons, planets, and stars (shred, then swallow whole).
+- Streaming, rule-based generated universe starting at Proxima Centauri.
+- Size scaling of decay, pressure, movement, and boost.
+- Supermassive win condition with galaxy, victory screen, and main menu.
+
+### Not yet implemented
+- Gravity nudges, hazards, zones, waves, mutations, meta-progression and
+  starting options.
+- Final visuals (Niagara disk and jets, lensing shader, planet/star art).

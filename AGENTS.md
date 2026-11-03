@@ -96,16 +96,27 @@ directly into the player Pawn class.
 Examples:
 
 - Black hole Pawn: movement and input coordination
-- Gravity component: pulling and orbiting nearby matter
+- Gravity component: pulling and orbiting nearby matter; shredding,
+  capturing, and swallowing celestial bodies
 - Mass component: mass gain, decay, and starvation checks
 - Disk pressure component: heating, venting, and blowout checks
-- Matter/consumable actors: asteroids, gas clouds, stars, fragments
+- Boost and accretion disk components: mass-costing burst, feeding visual
+- Matter/consumable actors: asteroids, gas clouds, fragments
+- Celestial bodies (`Universe/`): stars, planets, and moons on orbits; body
+  types defined as data in `UCelestialCatalog`
+- Universe streaming (`AAccretionUniverse`) and rule-based, deterministic
+  system generation (`FStarSystemGenerator`, pure data, unit tested)
 - Hazard actors: flares, beams, rival black holes
 - Mutation system: applying and stacking run upgrades
-- GameMode: run rules, zones, waves, and fail state handling
+- GameMode: run rules, zones, waves, fail states, and the win condition
+- Menu GameMode/PlayerController: main menu and starting options
 - GameState: current run data (zone, wave, active mutations)
 - PlayerController: player-specific control logic and gravity nudges
 - SaveGame: meta-progression and unlocks
+
+Gray-box visuals are built in code from engine content (see
+`Core/AccretionEngineContent.h`); keep pure gameplay rules in testable
+functions such as `FAccretionMath` and `FStarSystemGenerator`.
 
 ## Engineering Process
 1. Inspect relevant code before editing.
