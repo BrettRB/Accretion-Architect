@@ -14,6 +14,7 @@ Built in **Unreal Engine 5** for **Windows** and **macOS**.
 - **Disk pressure:** Rises as you feed. Smooth orbital feeding is safe;
   head-on impacts spike pressure. Max it out and your run ends.
 - **Starvation:** Mass slowly decays. Fall too low and you evaporate.
+- **Boost:** Spend mass for a burst of speed (Space) to reach distant matter.
 - **Gravity nudges:** Place temporary gravity wells to steer matter into
   safe spiral orbits.
 - **Hazards:** Stellar flares, neutron star beams, and rival black holes.

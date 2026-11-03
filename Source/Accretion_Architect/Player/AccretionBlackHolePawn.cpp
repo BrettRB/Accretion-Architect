@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Player/AccretionBlackHolePawn.h"
+#include "Components/AccretionBoostComponent.h"
+#include "Components/AccretionDiskComponent.h"
 #include "Components/AccretionGravityComponent.h"
 #include "Components/AccretionMassComponent.h"
 #include "Components/DiskPressureComponent.h"
@@ -55,6 +57,11 @@ AAccretionBlackHolePawn::AAccretionBlackHolePawn()
 	MassComponent = CreateDefaultSubobject<UAccretionMassComponent>(TEXT("Mass"));
 	DiskPressureComponent = CreateDefaultSubobject<UDiskPressureComponent>(TEXT("DiskPressure"));
 	GravityComponent = CreateDefaultSubobject<UAccretionGravityComponent>(TEXT("Gravity"));
+	BoostComponent = CreateDefaultSubobject<UAccretionBoostComponent>(TEXT("Boost"));
+
+	// Spins around the black hole, tipped toward the camera; scaled to the event horizon in UpdateSizeFromMass.
+	DiskComponent = CreateDefaultSubobject<UAccretionDiskComponent>(TEXT("AccretionDisk"));
+	DiskComponent->SetupAttachment(Root);
 
 	// The camera follows the controller's rotation; the sphere itself does not need to rotate.
 	bUseControllerRotationPitch = false;
@@ -75,6 +82,12 @@ void AAccretionBlackHolePawn::HandleMatterConsumed(float MatterMass, float Radia
 {
 	MassComponent->AddMass(MatterMass * MassGainPerMatterMass);
 	DiskPressureComponent->AddFeedPressure(MatterMass, RadialFraction);
+	DiskComponent->NotifyMatterConsumed();
+}
+
+bool AAccretionBlackHolePawn::TryBoost(const FVector& Direction)
+{
+	return !bFrozen && BoostComponent->TryBoost(Direction);
 }
 
 void AAccretionBlackHolePawn::HandleMassChanged(float NewMass)
@@ -89,10 +102,15 @@ void AAccretionBlackHolePawn::UpdateSizeFromMass()
 	// The engine sphere mesh is 100 cm across (50 cm radius).
 	BodyMesh->SetRelativeScale3D(FVector(EventHorizon / 50.f));
 	SpringArm->TargetArmLength = BaseCameraDistance + EventHorizon * CameraDistancePerEventHorizonRadius;
+	// The disk mesh is built in units of the event horizon radius.
+	DiskComponent->SetRelativeScale3D(FVector(EventHorizon));
 }
 
 void AAccretionBlackHolePawn::FreezeForRunEnd()
 {
+	// The disk keeps ticking so it fades out after the run ends.
+	bFrozen = true;
+	BoostComponent->SetComponentTickEnabled(false);
 	Movement->StopMovementImmediately();
 	Movement->SetComponentTickEnabled(false);
 	MassComponent->SetComponentTickEnabled(false);

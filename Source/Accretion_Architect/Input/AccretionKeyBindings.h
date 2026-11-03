@@ -16,6 +16,7 @@ enum class EAccretionInputAction : uint8
 	MoveRight,
 	MoveUp,
 	MoveDown,
+	Boost,
 
 	Count UMETA(Hidden)
 };

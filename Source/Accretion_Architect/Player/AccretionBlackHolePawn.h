@@ -6,6 +6,8 @@
 #include "GameFramework/Pawn.h"
 #include "AccretionBlackHolePawn.generated.h"
 
+class UAccretionBoostComponent;
+class UAccretionDiskComponent;
 class UAccretionGravityComponent;
 class UAccretionMassComponent;
 class UCameraComponent;
@@ -36,6 +38,12 @@ public:
 	UAccretionMassComponent* GetMassComponent() const { return MassComponent; }
 	UDiskPressureComponent* GetDiskPressureComponent() const { return DiskPressureComponent; }
 	UAccretionGravityComponent* GetGravityComponent() const { return GravityComponent; }
+	UAccretionBoostComponent* GetBoostComponent() const { return BoostComponent; }
+	UAccretionDiskComponent* GetDiskComponent() const { return DiskComponent; }
+
+	/** Boosts toward Direction, spending mass. Returns false if the boost was refused or the run has ended. */
+	UFUNCTION(BlueprintCallable, Category = "Accretion")
+	bool TryBoost(const FVector& Direction);
 
 	/** Mass gained per unit of consumed matter mass. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion", meta = (ClampMin = "0"))
@@ -73,7 +81,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAccretionGravityComponent> GravityComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAccretionBoostComponent> BoostComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAccretionDiskComponent> DiskComponent;
+
 private:
+	bool bFrozen = false;
+
 	UFUNCTION()
 	void HandleMatterConsumed(float MatterMass, float RadialFraction);
 

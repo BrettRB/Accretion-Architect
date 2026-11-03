@@ -28,6 +28,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Mass")
 	void AddMass(float Amount);
 
+	/**
+	 * Spends mass (e.g. on a boost). Fails and changes nothing if the amount is negative, the black hole
+	 * has starved, or spending would leave mass below the starvation threshold.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Accretion|Mass")
+	bool TrySpendMass(float Amount);
+
 	/** Applies decay for DeltaTime and checks for starvation. Called from TickComponent. */
 	UFUNCTION(BlueprintCallable, Category = "Accretion|Mass")
 	void UpdateMass(float DeltaTime);

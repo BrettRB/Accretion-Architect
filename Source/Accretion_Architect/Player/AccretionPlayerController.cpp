@@ -2,6 +2,7 @@
 
 #include "Player/AccretionPlayerController.h"
 #include "Input/AccretionControlsSubsystem.h"
+#include "Player/AccretionBlackHolePawn.h"
 #include "UI/AccretionControlsMenuWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -41,6 +42,17 @@ void AAccretionPlayerController::SetupInputComponent()
 	}
 	EnhancedInput->BindAction(Controls->GetLookAction(), ETriggerEvent::Triggered, this, &AAccretionPlayerController::HandleLook);
 	EnhancedInput->BindAction(Controls->GetToggleControlsMenuAction(), ETriggerEvent::Started, this, &AAccretionPlayerController::ToggleControlsMenu);
+	EnhancedInput->BindAction(Controls->GetMoveAction(EAccretionInputAction::Boost), ETriggerEvent::Started, this, &AAccretionPlayerController::HandleBoost);
+}
+
+void AAccretionPlayerController::HandleBoost()
+{
+	AAccretionBlackHolePawn* BlackHole = Cast<AAccretionBlackHolePawn>(GetPawn());
+	if (BlackHole && !IsControlsMenuOpen())
+	{
+		// Boost toward where the camera is looking.
+		BlackHole->TryBoost(GetControlRotation().Vector());
+	}
 }
 
 void AAccretionPlayerController::PlayerTick(float DeltaTime)

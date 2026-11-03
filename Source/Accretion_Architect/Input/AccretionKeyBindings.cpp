@@ -11,8 +11,9 @@ TMap<EAccretionInputAction, FKey> FAccretionKeyBindings::GetDefaultBindings()
 		{ EAccretionInputAction::MoveBackward, EKeys::S },
 		{ EAccretionInputAction::MoveLeft, EKeys::A },
 		{ EAccretionInputAction::MoveRight, EKeys::D },
-		{ EAccretionInputAction::MoveUp, EKeys::SpaceBar },
+		{ EAccretionInputAction::MoveUp, EKeys::E },
 		{ EAccretionInputAction::MoveDown, EKeys::LeftControl },
+		{ EAccretionInputAction::Boost, EKeys::SpaceBar },
 	};
 }
 
@@ -26,6 +27,7 @@ FText FAccretionKeyBindings::GetActionDisplayName(EAccretionInputAction Action)
 	case EAccretionInputAction::MoveRight:    return LOCTEXT("MoveRight", "Move Right");
 	case EAccretionInputAction::MoveUp:       return LOCTEXT("MoveUp", "Move Up");
 	case EAccretionInputAction::MoveDown:     return LOCTEXT("MoveDown", "Move Down");
+	case EAccretionInputAction::Boost:        return LOCTEXT("Boost", "Boost");
 	default:                                  return FText::GetEmpty();
 	}
 }

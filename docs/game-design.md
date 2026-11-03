@@ -28,6 +28,32 @@ while managing accretion disk pressure. Runs end on disk blowout or starvation.
 - Pressure vents slowly over time.
 - Reaching maximum pressure triggers a blowout and ends the run.
 
+### Boost
+- Space (rebindable) gives a burst of speed toward where the camera looks,
+  so the player can reach distant matter and objects.
+- Each boost costs mass (default 5) and has a cooldown (default 1.5 s).
+- A boost is refused if paying for it would drop mass below the starvation
+  threshold, so boosting alone never ends the run.
+- Speed above the normal max bleeds off gradually, so a boost carries the
+  black hole a long way. Boosting into matter makes head-on impacts likelier.
+
+### Accretion Disk (visual)
+- A glowing disk appears around the black hole while it is consuming matter,
+  fades in as feeding starts, and fades out about a second after it stops.
+- The disk grows with the event horizon and spins. It tips toward the camera
+  so it never disappears edge-on.
+- Gray-box version is a procedural ring; a Niagara disk is planned.
+
+### Environment: Proxima Centauri (first zone backdrop)
+- Black space with a dense starfield and Milky Way band. Stars are the main
+  way to see the black hole: it shows as a silhouette blocking them.
+- Proxima Centauri (red dwarf) with Proxima b and Proxima d orbiting it,
+  plus Alpha Centauri A/B as the brightest pair in the sky.
+- Lighting: dim red key light from Proxima, faint fill light from Alpha
+  Centauri so backlit matter is still readable. Exposure is fixed (no auto
+  exposure) to keep space dark.
+- Planets and the star are scenery for now (not consumable).
+
 ### Gravity Nudges
 - The player places temporary gravity wells to steer incoming matter.
 - Limited by cooldown or charges (to be decided).
@@ -51,7 +77,9 @@ while managing accretion disk pressure. Runs end on disk blowout or starvation.
 - Keyboard and mouse only for now; controller support may come later.
 - Movement is camera-relative and the movement plane follows the camera:
   W/S move along where the camera looks (including up/down pitch), A/D strafe
-  along the camera's right axis, Space/Left Ctrl move along the camera's up axis.
+  along the camera's right axis, E/Left Ctrl move along the camera's up axis.
+- Space boosts (see Boost). Move Up moved from Space to E to make room for it.
+  Older saved bindings without Boost reset to the defaults.
 - The black hole accelerates and drifts to a stop rather than halting instantly.
 - Players can customize controls in a Controls menu (Tab): rebind every
   movement key (keyboard keys or mouse buttons), adjust mouse sensitivity,

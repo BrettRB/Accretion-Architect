@@ -10,7 +10,7 @@ public class Accretion_Architect : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "UMG", "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "UMG", "Slate", "SlateCore", "ProceduralMeshComponent" });
 
 		// Allow includes relative to the module root, e.g. "Components/AccretionMassComponent.h".
 		PublicIncludePaths.Add(ModuleDirectory);

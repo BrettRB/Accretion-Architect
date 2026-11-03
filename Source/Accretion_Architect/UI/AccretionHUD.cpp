@@ -1,7 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "UI/AccretionHUD.h"
+#include "Components/AccretionBoostComponent.h"
 #include "Components/AccretionMassComponent.h"
+#include "Engine/LocalPlayer.h"
+#include "Input/AccretionControlsSubsystem.h"
 #include "Components/DiskPressureComponent.h"
 #include "Core/AccretionGameMode.h"
 #include "Engine/Canvas.h"
@@ -56,6 +59,35 @@ void AAccretionHUD::DrawHUD()
 		const FLinearColor Color = FLinearColor::LerpUsingHSV(FLinearColor(1.f, 0.85f, 0.2f), FLinearColor(1.f, 0.1f, 0.05f), Ratio);
 		const FString Label = FString::Printf(TEXT("DISK PRESSURE  %.0f%%"), Ratio * 100.f);
 		DrawMeter(Margin, Y, Ratio, Color, Label);
+		Y += MeterHeight + 32.f;
+	}
+
+	const UAccretionBoostComponent* Boost = Pawn->FindComponentByClass<UAccretionBoostComponent>();
+	const UAccretionMassComponent* BoostMass = Pawn->FindComponentByClass<UAccretionMassComponent>();
+	if (Boost && BoostMass)
+	{
+		const ULocalPlayer* LocalPlayer = PlayerOwner ? PlayerOwner->GetLocalPlayer() : nullptr;
+		const UAccretionControlsSubsystem* Controls = LocalPlayer ? LocalPlayer->GetSubsystem<UAccretionControlsSubsystem>() : nullptr;
+		const FString KeyName = Controls ? Controls->GetKeyForAction(EAccretionInputAction::Boost).GetDisplayName().ToString() : TEXT("Space");
+
+		FString Status;
+		FLinearColor StatusColor = FLinearColor(0.5f, 0.9f, 1.f);
+		if (Boost->IsCoolingDown())
+		{
+			Status = FString::Printf(TEXT("recharging %.1fs"), Boost->GetCooldownRemaining());
+			StatusColor = FLinearColor(1.f, 1.f, 1.f, 0.5f);
+		}
+		else if (!Boost->CanAfford(BoostMass))
+		{
+			Status = TEXT("not enough mass");
+			StatusColor = FLinearColor(1.f, 0.4f, 0.3f);
+		}
+		else
+		{
+			Status = TEXT("ready");
+		}
+		DrawText(FString::Printf(TEXT("BOOST [%s]  %s   (costs %.0f mass)"), *KeyName, *Status, Boost->MassCost),
+			StatusColor, Margin, Y - 20.f, GEngine->GetSmallFont());
 	}
 
 	DrawText(TEXT("Tab: Controls"), FLinearColor(1.f, 1.f, 1.f, 0.6f), Margin, Canvas->ClipY - Margin - 16.f, GEngine->GetSmallFont());

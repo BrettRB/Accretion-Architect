@@ -1,7 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/AutomationTest.h"
+#include "Components/AccretionBoostComponent.h"
+#include "Components/AccretionDiskComponent.h"
 #include "Components/AccretionMassComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
 #include "Components/DiskPressureComponent.h"
 #include "Core/AccretionMath.h"
 #include "Input/AccretionKeyBindings.h"
@@ -207,6 +210,116 @@ bool FAccretionKeySanitizeTest::RunTest(const FString& Parameters)
 	Reserved[EAccretionInputAction::MoveLeft] = FAccretionKeyBindings::GetControlsMenuKey();
 	FAccretionKeyBindings::Sanitize(Reserved);
 	TestTrue(TEXT("Reserved keys reset to defaults"), Reserved.OrderIndependentCompareEqual(Defaults));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionBoostDefaultKeyTest, "AccretionArchitect.Controls.BoostDefaultKey", AccretionTests::Flags)
+bool FAccretionBoostDefaultKeyTest::RunTest(const FString& Parameters)
+{
+	const TMap<EAccretionInputAction, FKey> Defaults = FAccretionKeyBindings::GetDefaultBindings();
+	TestEqual(TEXT("Boost defaults to the space bar"), Defaults[EAccretionInputAction::Boost], EKeys::SpaceBar);
+	TestNotEqual(TEXT("Move Up no longer uses the space bar"), Defaults[EAccretionInputAction::MoveUp], EKeys::SpaceBar);
+
+	// A save from before Boost existed has no Boost entry and Move Up on Space: it must reset cleanly.
+	TMap<EAccretionInputAction, FKey> OldSave = Defaults;
+	OldSave.Remove(EAccretionInputAction::Boost);
+	OldSave[EAccretionInputAction::MoveUp] = EKeys::SpaceBar;
+	FAccretionKeyBindings::Sanitize(OldSave);
+	TestTrue(TEXT("Old saves without Boost reset to defaults"), OldSave.OrderIndependentCompareEqual(Defaults));
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Boost
+// ---------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionSpendMassTest, "AccretionArchitect.Mass.SpendMass", AccretionTests::Flags)
+bool FAccretionSpendMassTest::RunTest(const FString& Parameters)
+{
+	UAccretionMassComponent* Mass = NewObject<UAccretionMassComponent>();
+	Mass->StartingMass = 30.f;
+	Mass->StarvationThreshold = 20.f;
+	Mass->ResetMass();
+
+	TestTrue(TEXT("Can spend mass above the threshold"), Mass->TrySpendMass(5.f));
+	TestEqual(TEXT("Spending reduces mass"), Mass->GetMass(), 25.f, 1e-3f);
+	TestTrue(TEXT("Can spend down to exactly the threshold"), Mass->TrySpendMass(5.f));
+	TestFalse(TEXT("Cannot spend below the threshold"), Mass->TrySpendMass(0.5f));
+	TestEqual(TEXT("Refused spend changes nothing"), Mass->GetMass(), 20.f, 1e-3f);
+	TestFalse(TEXT("Negative spend is refused"), Mass->TrySpendMass(-5.f));
+	TestFalse(TEXT("Spending never starves the black hole"), Mass->IsStarved());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionBoostTest, "AccretionArchitect.Boost.CostAndCooldown", AccretionTests::Flags)
+bool FAccretionBoostTest::RunTest(const FString& Parameters)
+{
+	UAccretionMassComponent* Mass = NewObject<UAccretionMassComponent>();
+	Mass->StartingMass = 100.f;
+	Mass->StarvationThreshold = 20.f;
+	Mass->ResetMass();
+
+	UFloatingPawnMovement* Movement = NewObject<UFloatingPawnMovement>();
+	UAccretionBoostComponent* Boost = NewObject<UAccretionBoostComponent>();
+	Boost->MassCost = 10.f;
+	Boost->BoostSpeed = 3000.f;
+	Boost->Cooldown = 2.f;
+
+	TestTrue(TEXT("Boost succeeds when ready"), Boost->TryBoostUsing(Mass, Movement, FVector(0, 2, 0)));
+	TestEqual(TEXT("Boost spends mass"), Mass->GetMass(), 90.f, 1e-3f);
+	TestTrue(TEXT("Boost adds speed in the (normalized) direction"), Movement->Velocity.Equals(FVector(0, 3000, 0), 1e-3));
+
+	TestTrue(TEXT("Cooldown starts after boosting"), Boost->IsCoolingDown());
+	TestFalse(TEXT("Cannot boost while cooling down"), Boost->TryBoostUsing(Mass, Movement, FVector(1, 0, 0)));
+	TestEqual(TEXT("Refused boost costs nothing"), Mass->GetMass(), 90.f, 1e-3f);
+
+	Boost->UpdateCooldown(1.f);
+	TestTrue(TEXT("Still cooling down partway through"), Boost->IsCoolingDown());
+	Boost->UpdateCooldown(1.f);
+	TestFalse(TEXT("Cooldown finishes"), Boost->IsCoolingDown());
+
+	TestFalse(TEXT("Zero direction is refused"), Boost->TryBoostUsing(Mass, Movement, FVector::ZeroVector));
+
+	Mass->StartingMass = 25.f;
+	Mass->ResetMass();
+	TestFalse(TEXT("Cannot afford a boost that would starve"), Boost->CanAfford(Mass));
+	TestFalse(TEXT("Boost refused when it would drop mass below the threshold"), Boost->TryBoostUsing(Mass, Movement, FVector(1, 0, 0)));
+	TestEqual(TEXT("Refused boost keeps mass"), Mass->GetMass(), 25.f, 1e-3f);
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Accretion disk fade
+// ---------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAccretionDiskFadeTest, "AccretionArchitect.Disk.FadeInAndOut", AccretionTests::Flags)
+bool FAccretionDiskFadeTest::RunTest(const FString& Parameters)
+{
+	UAccretionDiskComponent* Disk = NewObject<UAccretionDiskComponent>();
+	Disk->FeedHoldTime = 1.f;
+	Disk->FadeInTime = 0.5f;
+	Disk->FadeOutTime = 2.f;
+
+	Disk->UpdateFade(1.f);
+	TestEqual(TEXT("Disk is dark before feeding"), Disk->GetIntensity(), 0.f, 1e-4f);
+
+	Disk->NotifyMatterConsumed();
+	Disk->UpdateFade(0.25f);
+	TestEqual(TEXT("Disk fades in while feeding"), Disk->GetIntensity(), 0.5f, 1e-4f);
+	Disk->UpdateFade(0.25f);
+	TestEqual(TEXT("Disk reaches full intensity"), Disk->GetIntensity(), 1.f, 1e-4f);
+
+	Disk->NotifyMatterConsumed();
+	Disk->UpdateFade(0.9f);
+	TestEqual(TEXT("Disk stays lit while matter keeps arriving"), Disk->GetIntensity(), 1.f, 1e-4f);
+
+	Disk->UpdateFade(0.2f); // hold time runs out during this step
+	Disk->UpdateFade(1.f);
+	TestEqual(TEXT("Disk fades out after feeding stops"), Disk->GetIntensity(), 0.5f, 1e-4f);
+	TestFalse(TEXT("No longer feeding"), Disk->IsFeeding());
+
+	Disk->UpdateFade(5.f);
+	TestEqual(TEXT("Disk fades to fully dark"), Disk->GetIntensity(), 0.f, 1e-4f);
 	return true;
 }
 

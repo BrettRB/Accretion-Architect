@@ -29,6 +29,16 @@ void UAccretionMassComponent::AddMass(float Amount)
 	SetMass(Mass + Amount);
 }
 
+bool UAccretionMassComponent::TrySpendMass(float Amount)
+{
+	if (bStarved || Amount < 0.f || Mass - Amount < StarvationThreshold)
+	{
+		return false;
+	}
+	SetMass(Mass - Amount);
+	return true;
+}
+
 void UAccretionMassComponent::UpdateMass(float DeltaTime)
 {
 	if (bStarved || DeltaTime <= 0.f)

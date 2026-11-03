@@ -13,7 +13,7 @@ struct FInputActionValue;
 /**
  * Keyboard and mouse control for the black hole. Movement is relative to the camera:
  * forward/back follow where the camera looks (including pitch), left/right and up/down follow
- * the camera's right and up axes. Also opens the controls menu (Tab).
+ * the camera's right and up axes. Boost fires toward where the camera looks. Also opens the controls menu (Tab).
  */
 UCLASS()
 class ACCRETION_ARCHITECT_API AAccretionPlayerController : public APlayerController
@@ -40,6 +40,7 @@ protected:
 private:
 	UAccretionControlsSubsystem* GetControlsSubsystem() const;
 	void HandleLook(const FInputActionValue& Value);
+	void HandleBoost();
 	void OpenControlsMenu();
 	void CloseControlsMenu();
 

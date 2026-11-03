@@ -3,6 +3,7 @@
 #include "Core/AccretionGameMode.h"
 #include "Components/AccretionMassComponent.h"
 #include "Components/DiskPressureComponent.h"
+#include "Environment/ProximaCentauriEnvironment.h"
 #include "Matter/MatterSpawner.h"
 #include "Player/AccretionBlackHolePawn.h"
 #include "Player/AccretionPlayerController.h"
@@ -19,11 +20,17 @@ AAccretionGameMode::AAccretionGameMode()
 	PlayerControllerClass = AAccretionPlayerController::StaticClass();
 	HUDClass = AAccretionHUD::StaticClass();
 	MatterSpawnerClass = AMatterSpawner::StaticClass();
+	EnvironmentClass = AProximaCentauriEnvironment::StaticClass();
 }
 
 void AAccretionGameMode::StartPlay()
 {
 	Super::StartPlay();
+
+	if (EnvironmentClass && !TActorIterator<AActor>(GetWorld(), EnvironmentClass))
+	{
+		GetWorld()->SpawnActor<AActor>(EnvironmentClass);
+	}
 
 	if (MatterSpawnerClass && !TActorIterator<AMatterSpawner>(GetWorld()))
 	{

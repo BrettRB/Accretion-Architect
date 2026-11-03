@@ -19,7 +19,7 @@ enum class EAccretionRunEndReason : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunEnded, EAccretionRunEndReason, Reason);
 
 /**
- * Gray-box run rules: spawns the player's black hole and a matter spawner,
+ * Gray-box run rules: spawns the player's black hole, the space environment, and a matter spawner,
  * ends the run on disk blowout or starvation, and restarts the level after a short delay.
  */
 UCLASS()
@@ -49,6 +49,10 @@ public:
 	/** Spawned at start if the level does not already contain a matter spawner. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Run")
 	TSubclassOf<AMatterSpawner> MatterSpawnerClass;
+
+	/** Space backdrop (sky, star, planets, lighting). Spawned at start if the level does not already contain one. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accretion|Run")
+	TSubclassOf<AActor> EnvironmentClass;
 
 private:
 	UFUNCTION()
